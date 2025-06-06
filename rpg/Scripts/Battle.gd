@@ -1,5 +1,13 @@
+"""
+Battle.gd
+----------
+Large prototype battle script containing experimental logic. The script
+handles player input, cutscenes and attack sequences. It is recommended to
+split this file into smaller components for maintainability.
+"""
+
 extends Node2D
-class_name BATTLE
+class_name BattleScene
 
 
 #to-do:
@@ -85,6 +93,8 @@ func textq():
 				
 				
 			
+# ─── Physics/Process ───
+
 func _process(delta):
 	
 	$SB_bar.value = SB
@@ -132,6 +142,8 @@ func _process(delta):
 				
 				pass
 		
+
+# ─── Initialization ───
 
 func _ready():
 	$"Submit/Submit Bar".hide()
