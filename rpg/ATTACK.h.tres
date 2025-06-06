@@ -1,0 +1,9 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://lbq46hgkigrt"]
+
+[resource]
+expand_margin_left = 26.0
+expand_margin_top = 66.0
+expand_margin_right = 22.0
+expand_margin_bottom = 44.0
+axis_stretch_horizontal = 2
+axis_stretch_vertical = 2
