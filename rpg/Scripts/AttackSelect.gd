@@ -62,3 +62,4 @@ func _on_mouse_exited() -> void:
         return
     await _play_hover_sequence(false)
     print("[AttackSelect] leave")
+
