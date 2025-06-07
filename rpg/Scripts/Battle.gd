@@ -9,410 +9,455 @@ split this file into smaller components for maintainability.
 extends Node2D
 class_name BattleScene
 
-
-#to-do:
-#
-#add better textbox, font, etc
-#add speed buff and "leg kick" move
+# =============================================================================
+# Feature Roadmap
+# -----------------------------------------------------------------------------
+# Development notes and upcoming features for this prototype.
+# =============================================================================
+# add better textbox, font, etc
+# add speed buff and "leg kick" move
 # add game over screen
 # add wham to attacks and better animations for enemy and player
 # add results screen showing exp and money earned
 # add enemy events/phase changes
-	# - added event for first turn
-# add phase 2 and 3 as well as their respective new attscks
-	
+#   - added event for first turn
+# add phase 2 and 3 as well as their respective new attacks
 # add SP bar
-var charmer = false
-var charm = -1
-var taunt = -1
-var SB_Boost = -1
-var attackup = -1
-var phase = 2 #1
-var disable = 0
-var build = 0
-var aistrats = 0
-var SB = 0
-var submit = 0
-var freedodge = 0
-var kickmiss = 0
-var kickaccuracy = 0
-var bleeding = 0 
-var playerdefense = 10
-var enemyspeed = 1
-var playerspeed = 10
-var criticalenemydamage = 6
-var turn_count = 1
-var enemyattack = 15
-var playerdam = 2
-var enemydam = 2
-var playerhp = 100
-var playersp = 50
-var playermaxsp = 50
-var playermaxhp = 100
-var enemyhp = 600
+
+# =============================================================================
+# Status Flags
+# -----------------------------------------------------------------------------
+# Booleans and counters that represent buffs, debuffs and combat states.
+# =============================================================================
+var charmer = false          # True while the player is forced to submit
+var charm = -1              # Turns remaining under charm (-1 when inactive)
+var taunt = -1              # Enemy taunt duration; increases enemy damage
+var SB_Boost = -1           # Turns remaining of SB boost (-1 = none)
+var attackup = -1           # Turns remaining of combo buff
+var phase = 2               # Current battle phase (1..3)
+var disable = 0             # Generic disable flag (unused)
+var build = 0               # Build up meter for enemy AI (unused)
+var aistrats = 0            # AI strategy flag (unused)
+var SB = 0                  # SB meter value used for special actions
+var submit = 0              # Submission counter used during headscissor
+var freedodge = 0           # Allows a free dodge when > 0
+var kickmiss = 0            # How many times player dodged a kick
+var kickaccuracy = 0        # Current kick accuracy modifier
+var bleeding = 0            # Turns remaining of bleed damage
+
+# =============================================================================
+# Combat Stats
+# -----------------------------------------------------------------------------
+# Numerical values for player/enemy stats and timers.
+# =============================================================================
+var playerdefense = 10      # Base defense stat
+var enemyspeed = 1          # Enemy speed used in quick‑time events
+var playerspeed = 10        # Player speed stat
+var criticalenemydamage = 6 # Extra damage dealt on enemy critical hits
+var turn_count = 1          # Number of turns elapsed
+var enemyattack = 15        # Base damage from enemy attacks
+var playerdam = 2           # Base player attack damage
+var enemydam = 2            # Base enemy damage? (unused)
+var playerhp = 100          # Player current HP
+var playersp = 50           # Player current SP
+var playermaxsp = 50        # Player maximum SP
+var playermaxhp = 100       # Player maximum HP
+var enemyhp = 600           # Enemy current HP
+
+# Random number generator for various rolls
 var rng = RandomNumberGenerator.new()
-# if 1, stumble is guarateened
+# When 1, stumbling is guaranteed
 var stumble = 0
-# if 1, crit is guarateened
+# When 1, next hit will critically strike
 var crit = 0
-signal textbox_closed
-signal close_skill_menu
-var skillmenu = 0
-enum state{ready, reading, finished}
-@onready var currentstate = state.ready
-var statechange = 0
-@onready var next_char = $TB.visible_characters
 
+# =============================================================================
+# Dialogue State Machine
+# -----------------------------------------------------------------------------
+# Controls the typewriter effect and textbox interaction.
+# =============================================================================
+signal textbox_closed                # Fired when player closes dialogue
+signal close_skill_menu              # Used to close the skill menu externally
+var skillmenu = 0                    # 1 while the skill menu is open
+
+enum state { ready, reading, finished }
+@onready var currentstate = state.ready  # Active textbox state
+var statechange = 0                       # Set to 1 to request a state change
+@onready var next_char = $TB.visible_characters  # Tracks character count
+
+# =============================================================================
+# Display & Tween Helpers
+# -----------------------------------------------------------------------------
+# Tween and audio helpers for the typewriter effect.
+# =============================================================================
 @onready var tween = create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
-var current_char = 0
-var ankhatext = 0
-var legstatus = 0
-var time2die = 1
-var quicktime = false
-var quicktimesuccess = false
-var attackcount = 0
-var kickhit = 0
-# "texq" delays audio ticks. without this, you'll hear it evey fucking frame.
+var current_char = 0              # Index of the last played character tick
+var ankhatext = 0                 # 1 while Ankha is speaking
+var legstatus = 0                 # 2 when player is locked in headscissor
+var time2die = 1                  # Countdown before instant loss
+var quicktime = false             # True when a quick‑time event is active
+var quicktimesuccess = false      # Result of the quick‑time event
+var attackcount = 0               # Number of consecutive player attacks
+var kickhit = 0                   # Tracks whether kick connected
+
+# -----------------------------------------------------------------------------
+# Helper: play a tick sound when text advances.
+# "texq" delays audio ticks so the sound is not played every frame.
+# -----------------------------------------------------------------------------
 func textq():
-	if ankhatext == 1:
-		next_char = $TB.visible_characters
-		if next_char > current_char:
-			current_char = next_char
-			$ankhatextding.play()
-			if current_char == current_char:
-					print(current_char)
-	else:
-		next_char = $TB.visible_characters
-		if next_char > current_char:
-			current_char = next_char
-			$H_LetGo/textding.play()
-			if current_char == current_char:
-				print(current_char)
-		
-	
-				
-				
-			
-# ─── Physics/Process ───
+    """Plays a sound whenever a new character appears on screen."""
+    if ankhatext == 1:
+        next_char = $TB.visible_characters  # $TB is the on‑screen dialogue Label
+        if next_char > current_char:
+            current_char = next_char
+            $ankhatextding.play()  # sound effect for Ankha's dialogue
+            if current_char == current_char:
+                print(current_char)
+    else:
+        next_char = $TB.visible_characters
+        if next_char > current_char:
+            current_char = next_char
+            $H_LetGo/textding.play()  # generic text blip sound
+            if current_char == current_char:
+                print(current_char)
 
+# =============================================================================
+# Process Loop
+# -----------------------------------------------------------------------------
+# Handles turn logic, quick‑time events and textbox state transitions.
+# =============================================================================
 func _process(delta):
-	
-	$SB_bar.value = SB
-	
-	if enemyhp < 400:
-		print("phase 2 is on")
-		phase = 2
-		
-	if taunt > 0:
-		enemyattack = 50
-		playerdam = 5
-	else:
-		playerdam = 2
-		enemyattack = 15
-		
-	quicktimeevent()
-	
-	match currentstate:
-		state.ready:
-			if statechange == 1:
-				await(changestate(state.reading))
-			else:	
-				pass
-		state.reading:
-			#tween.tween_property($cuteping, "volume_db", -60, 1)
-			textq()
-			
-	
-			
-				
-			if Input.is_action_just_pressed("ui_accept"):
-				
-				$TB.visible_characters = len($TB.text)
-				tween.stop()
-				changestate(state.finished)
-				
-			pass
-			await(get_tree().create_timer(1).timeout)
-		state.finished:
-			if Input.is_action_just_pressed("ui_accept"):
-				$TB.hide()
-				$AnkhaIcon.hide()
-				emit_signal("textbox_closed")
-				changestate(state.ready)
-				
-				pass
-		
+    """Frame update: handles UI updates and dialogue state machine."""
+    $SB_bar.value = SB  # ProgressBar showing current SB meter
 
-# ─── Initialization ───
+    # Phase transition check
+    if enemyhp < 400:
+        print("phase 2 is on")
+        phase = 2
 
+    # Taunt buff temporarily increases enemy damage
+    if taunt > 0:
+        enemyattack = 50
+        playerdam = 5
+    else:
+        playerdam = 2
+        enemyattack = 15
+
+    quicktimeevent()  # listen for quick‑time input when active
+
+    match currentstate:
+        state.ready:
+            if statechange == 1:
+                await(changestate(state.reading))
+            else:
+                pass
+        state.reading:
+            # Play tick sounds as characters appear
+            textq()
+
+            if Input.is_action_just_pressed("ui_accept"):
+                $TB.visible_characters = len($TB.text)
+                tween.stop()
+                changestate(state.finished)
+
+            pass
+            await(get_tree().create_timer(1).timeout)
+        state.finished:
+            if Input.is_action_just_pressed("ui_accept"):
+                $TB.hide()
+                $AnkhaIcon.hide()
+                emit_signal("textbox_closed")
+                changestate(state.ready)
+
+                pass
+
+# =============================================================================
+# Initialization
+# -----------------------------------------------------------------------------
+# Hides and resets all UI elements on scene load.
+# =============================================================================
 func _ready():
-	$"Submit/Submit Bar".hide()
-	$Submit/FelineFlash.hide()
-	$Submit/ThighTomb.hide()
-	$Submit/StayStill.hide()
-	$Speedboost.hide()
-	$"Pre-Kick".hide()
-	$SMbox.hide()
-	$AnkhaIcon.hide()
-	$kickpost.hide()
-	$kickhit.hide()
-	$H_LockIn.hide()
-	$H_LetGo.hide()
-	$H_Squeeze.hide()
-	$SP.text = "SP: " + str(playersp) + "/" + str(playermaxsp)
-	$HP.text = "HP: " + str(playerhp) + "/" + str(playermaxhp)
-	$HP/AnimationPlayer.play("move down")
-	$TB.hide()
-	$JumpKick.hide()
-	$Flash.hide()
-	$FlyingKick.hide()
-	$GetUp.hide()
-	$RHCrit.hide()
-	$CritStance.hide()
-	$SkillsM.hide()
-	$R_Headscissor.hide()
-	$R_Headscissor2.hide()
-	$A_Roundhouse.hide()
-	$H_Sitdown.hide()
-	$H_Prep.hide()
-	$kickmiss.hide()
-	
+    """Initial setup for UI widgets and battle state."""
+    $"Submit/Submit Bar".hide()     # ProgressBar for submission mini‑game
+    $Submit/FelineFlash.hide()       # Skill button
+    $Submit/ThighTomb.hide()
+    $Submit/StayStill.hide()
+    $Speedboost.hide()
+    $"Pre-Kick".hide()
+    $SMbox.hide()                    # Small text pop‑ups
+    $AnkhaIcon.hide()                # Sprite displayed when Ankha speaks
+    $kickpost.hide()
+    $kickhit.hide()
+    $H_LockIn.hide()
+    $H_LetGo.hide()
+    $H_Squeeze.hide()
+    $SP.text = "SP: " + str(playersp) + "/" + str(playermaxsp)
+    $HP.text = "HP: " + str(playerhp) + "/" + str(playermaxhp)
+    $HP/AnimationPlayer.play("move down")
+    $TB.hide()
+    $JumpKick.hide()
+    $Flash.hide()
+    $FlyingKick.hide()
+    $GetUp.hide()
+    $RHCrit.hide()
+    $CritStance.hide()
+    $SkillsM.hide()                  # Skill selection menu
+    $R_Headscissor.hide()
+    $R_Headscissor2.hide()
+    $A_Roundhouse.hide()
+    $H_Sitdown.hide()
+    $H_Prep.hide()
+    $kickmiss.hide()
+
+# -----------------------------------------------------------------------------
+# Quick Time Event helper.
+# -----------------------------------------------------------------------------
 func quicktimeevent():
-	if quicktime == true:
-		if Input.is_action_just_pressed("qte"):
-			quicktimesuccess = true
-			print("qte is working")
-			pass
-			
+    """Checks for quick‑time event input when active."""
+    if quicktime == true:
+        if Input.is_action_just_pressed("qte"):
+            quicktimesuccess = true
+            print("qte is working")
+            pass
+
+# -----------------------------------------------------------------------------
+# Opens the skill menu UI and pauses the regular attack UI.
+# -----------------------------------------------------------------------------
 func skill_menu():
-	$SkillsM.show()
-	$Attack.hide()
-	$Skills.hide()
-	$HP/AnimationPlayer.play("moveup")
-	emit_signal("close_skill_menu")
-	skillmenu = 1
-	
-#critboost is an attack that guarantees a critical hit for the next attack
+    """Displays the skill selection menu."""
+    $SkillsM.show()
+    $Attack.hide()
+    $Skills.hide()
+    $HP/AnimationPlayer.play("moveup")
+    emit_signal("close_skill_menu")
+    skillmenu = 1
+
+# -----------------------------------------------------------------------------
+# Buff that guarantees the next attack will be a critical hit.
+# -----------------------------------------------------------------------------
 func critboost():
-	$CritStance.show()
-	$CritStance/AnimationPlayer.play("fadein")
-	display_text("Ankha strikes a fighting stance!")
-	await(textbox_closed)
-	crit = 1
-	display_text("Her next attack will be a critical hit!")
-	await(textbox_closed)
-	$CritStance/AnimationPlayer.play("fadeout")
-	player_turn()
-	
-	
-	
+    """Applies a one‑turn critical hit buff to the player."""
+    $CritStance.show()
+    $CritStance/AnimationPlayer.play("fadein")
+    display_text("Ankha strikes a fighting stance!")
+    await(textbox_closed)
+    crit = 1
+    display_text("Her next attack will be a critical hit!")
+    await(textbox_closed)
+    $CritStance/AnimationPlayer.play("fadeout")
+    player_turn()
+
+# -----------------------------------------------------------------------------
+# Checks if the player or enemy has been defeated and ends the game.
+# -----------------------------------------------------------------------------
 func deathcheck():
-	if playerhp <= 0:
-		display_text("You died lol")
-		await(textbox_closed)
-		get_tree().quit() 
-		
+    """Ends the game if the player's HP reaches zero."""
+    if playerhp <= 0:
+        display_text("You died lol")
+        await(textbox_closed)
+        get_tree().quit()
+
 func enemydeathcheck():
-	if enemyhp <= 0:
-		display_text("You won!")
-		await(textbox_closed)
-		get_tree().quit() 
-		await(get_tree().create_timer(1).timeout)
-		
+    """Ends the game if the enemy's HP reaches zero."""
+    if enemyhp <= 0:
+        display_text("You won!")
+        await(textbox_closed)
+        get_tree().quit()
+        await(get_tree().create_timer(1).timeout)
+
+# -----------------------------------------------------------------------------
+# Handles the start of the player's turn including status effects.
+# -----------------------------------------------------------------------------
 func player_turn(rng = 0):
+    """Begins the player's turn and processes ongoing effects."""
 
-	if charm >=1:
-		charm -= 1
-		display_text("Your lust clouds your judgement!")
-		await(textbox_closed)
-		rng = 1 #rng.randi_range(1, 3)
-		if rng == 1:
-			SB += 15
-			display_text("You get on your knees and beg Ankha to wrap
-			her thighs around your head.")
-			await(textbox_closed)
-			display_text("Ugh, you're a freak, 
-			you know that.", 0.05, true)
-			await(textbox_closed)
-			display_text("But very well...", 0.05, true)
-			await(textbox_closed)
-			display_text("She kicks you down to the ground.", 0.05, false)
-			await(textbox_closed)
-			charmer = true
-			await(headscissor())
-			return 
-			
-		if rng == 2:
-			SB += 10
-			display_text("You stick your tongue and ask Ankha if you
-			could worship her soles.")
-			await(textbox_closed)
-			display_text("Ugh, you're a freak, 
-			you know that.", 0.05, true)
-			await(textbox_closed)
-			display_text("But very well...", 0.05, true)
-			await(textbox_closed)
-			display_text("She kicks you down to the ground.", 0.05, false)
-			await(textbox_closed)
-			charmer = true
-			await(footgag())
-			return 
-		#roundhouse works but footgag and headscissor need fixing
-		if rng == 3:
-			display_text("You point at your cheek and ask Ankha if she could 
-			kick you there again.")
-			await(textbox_closed)
-			display_text("Ugh, you're a freak, you know that.", 0.05, true)
-			await(textbox_closed)
-			display_text("But very well...", 0.05, true)
-			await(textbox_closed)
-			display_text("You close your eyes as you brace for impact.")
-			await(textbox_closed)
-			submit = 3
-			#apply charmer = true solution to footgag and headscissor
-			charmer = true
-			await(roundhouse_kick())
-			return 
-			
-		
-	if SB_Boost > 0:
-		SB_Boost -= 1
-	
-	if SB_Boost == 0:
-		SB_Boost -= 1
-		display_text("Your SB boost is over.")
-		await(textbox_closed)
-		
-	if attackup > 0:
-		attackup  -= 1
-	
-	if attackup == 0:
-		print(str(attackcount) + "is attack acount")
-		attackup -= 1
-		display_text("Your combo buff is over.")
-		await(textbox_closed)
-		
-	if legstatus == 2:
-		await(headscissor())
-		$Background/AnimationPlayer.play("attack_phase")
-		$Amy/AnimationPlayer.play("attack_phase")
-		legstatus = 0
-		player_turn()
-		return
-	if turn_count == 1:
-		display_text("H-Hey!", 0.02, true)
-		$Camera2D/AnimationPlayer.play("shake")
-		await(textbox_closed)
-		display_text("You're not supposed 
-		to dodge that!", 0.05, true)
-		await(textbox_closed)
-		display_text("I command you to 
-		stay still!", 0.05, true)
-		await(textbox_closed)
-		ankhatext = 0
-		
-	if kickmiss == 2:
-		display_text("God damn it!", 0.02, true)
-		$Camera2D/AnimationPlayer.play("shake")
-		await(textbox_closed)
-		display_text("If you dodge one 
-		more frickin' time...", 0.05, true)
-		await(textbox_closed)
-		display_text("I. WILL. END. YOU.", 0.2, true)
-		await(textbox_closed)
-		display_text("She seems to be attacking more 
-		violently every time she misses.")
-		await(textbox_closed)
-		display_text("Maybe letting her hit you could 
-		calm her down...?")
-		kickmiss += 1
-		await(textbox_closed)
-		
-	#if kickmiss == 4:
-		#display_text("That's it!", 0.02, true)
-		#$Camera2D/AnimationPlayer.play("shake")
-		#await(textbox_closed)
-		#display_text("You're, like, totally going to die now!", 0.02, true)
-		#$Camera2D/AnimationPlayer.play("shake")
-		#time2die = 3
-		#await(textbox_closed)
-		#enemyturn()
-		#return
-		
-		
-		
-	if bleeding >=1:
-		bleeding -= 1
-		print("bleeding is " + str(bleeding))
-		display_text("You don't feel so good...")
-		await(textbox_closed)
-		print("bleeding off")
-		await(Bleeding())
-		print("bleeding on")
-		$Background/AnimationPlayer.play("attack_phase")
-		$Amy/AnimationPlayer.play("attack_phase")
-		$TB.hide()
-		$Attack.show()
-		$Skills.show()
-		if bleeding == 0:
-				display_text("You're feel much better now!")
-				await(textbox_closed)
-				$Attack.show()
-				$Skills.show()
-	else:
-		$Background/AnimationPlayer.play("attack_phase")
-		$Amy/AnimationPlayer.play("attack_phase")
-		$TB.hide()
-		$Submit.show()
-		$Attack.show()
-		$Skills.show()
-	
+    # Charm forces the player to submit instead of attacking
+    if charm >= 1:
+        charm -= 1
+        display_text("Your lust clouds your judgement!")
+        await(textbox_closed)
+        rng = 1  # rng.randi_range(1, 3) in future
+        if rng == 1:
+            SB += 15
+            display_text("You get on your knees and beg Ankha to wrap\nher thighs around your head.")
+            await(textbox_closed)
+            display_text("Ugh, you're a freak, \nyou know that.", 0.05, true)
+            await(textbox_closed)
+            display_text("But very well...", 0.05, true)
+            await(textbox_closed)
+            display_text("She kicks you down to the ground.", 0.05, false)
+            await(textbox_closed)
+            charmer = true
+            await(headscissor())
+            return
+
+        if rng == 2:
+            SB += 10
+            display_text("You stick your tongue and ask Ankha if you\ncould worship her soles.")
+            await(textbox_closed)
+            display_text("Ugh, you're a freak,\nyou know that.", 0.05, true)
+            await(textbox_closed)
+            display_text("But very well...", 0.05, true)
+            await(textbox_closed)
+            display_text("She kicks you down to the ground.", 0.05, false)
+            await(textbox_closed)
+            charmer = true
+            await(footgag())
+            return
+        # roundhouse works but footgag and headscissor need fixing
+        if rng == 3:
+            display_text("You point at your cheek and ask Ankha if she could \nkick you there again.")
+            await(textbox_closed)
+            display_text("Ugh, you're a freak, you know that.", 0.05, true)
+            await(textbox_closed)
+            display_text("But very well...", 0.05, true)
+            await(textbox_closed)
+            display_text("You close your eyes as you brace for impact.")
+            await(textbox_closed)
+            submit = 3
+            # apply charmer = true solution to footgag and headscissor
+            charmer = true
+            await(roundhouse_kick())
+            return
+
+    # Countdown and removal for temporary buffs
+    if SB_Boost > 0:
+        SB_Boost -= 1
+
+    if SB_Boost == 0:
+        SB_Boost -= 1
+        display_text("Your SB boost is over.")
+        await(textbox_closed)
+
+    if attackup > 0:
+        attackup  -= 1
+
+    if attackup == 0:
+        print(str(attackcount) + "is attack acount")
+        attackup -= 1
+        display_text("Your combo buff is over.")
+        await(textbox_closed)
+
+    # If locked in headscissor automatically resolve it
+    if legstatus == 2:
+        await(headscissor())
+        $Background/AnimationPlayer.play("attack_phase")
+        $Amy/AnimationPlayer.play("attack_phase")
+        legstatus = 0
+        player_turn()
+        return
+
+    # Unique dialogue for the very first turn
+    if turn_count == 1:
+        display_text("H-Hey!", 0.02, true)
+        $Camera2D/AnimationPlayer.play("shake")
+        await(textbox_closed)
+        display_text("You're not supposed\n to dodge that!", 0.05, true)
+        await(textbox_closed)
+        display_text("I command you to\n stay still!", 0.05, true)
+        await(textbox_closed)
+        ankhatext = 0
+
+    # Enemy reacts if too many kicks miss in a row
+    if kickmiss == 2:
+        display_text("God damn it!", 0.02, true)
+        $Camera2D/AnimationPlayer.play("shake")
+        await(textbox_closed)
+        display_text("If you dodge one\n more frickin' time...", 0.05, true)
+        await(textbox_closed)
+        display_text("I. WILL. END. YOU.", 0.2, true)
+        await(textbox_closed)
+        display_text("She seems to be attacking more\n violently every time she misses.")
+        await(textbox_closed)
+        display_text("Maybe letting her hit you could\n calm her down...?")
+        kickmiss += 1
+        await(textbox_closed)
+
+    # Bleeding damage over time
+    if bleeding >= 1:
+        bleeding -= 1
+        print("bleeding is " + str(bleeding))
+        display_text("You don't feel so good...")
+        await(textbox_closed)
+        print("bleeding off")
+        await(Bleeding())
+        print("bleeding on")
+        $Background/AnimationPlayer.play("attack_phase")
+        $Amy/AnimationPlayer.play("attack_phase")
+        $TB.hide()
+        $Attack.show()
+        $Skills.show()
+        if bleeding == 0:
+            display_text("You're feel much better now!")
+            await(textbox_closed)
+            $Attack.show()
+            $Skills.show()
+    else:
+        $Background/AnimationPlayer.play("attack_phase")
+        $Amy/AnimationPlayer.play("attack_phase")
+        $TB.hide()
+        $Submit.show()
+        $Attack.show()
+        $Skills.show()
+
+# =============================================================================
+# Input Handling
+# -----------------------------------------------------------------------------
+# Responds to player input outside the main battle loop.
+# =============================================================================
 func _input(_event):
-	
-	if Input.is_action_just_pressed("ui_cancel"):
-		$SkillsM.hide()
-		$Attack.show()
-		$Skills.show()
-		$"Submit/Submit Bar".hide()
-		$Submit/FelineFlash.hide()
-		$Submit/ThighTomb.hide()
-		$Submit/StayStill.hide()
-		
-		emit_signal("close_skill_menu")
+    """Handles global input such as closing the skill menu."""
 
+    if Input.is_action_just_pressed("ui_cancel"):
+        $SkillsM.hide()
+        $Attack.show()
+        $Skills.show()
+        $"Submit/Submit Bar".hide()
+        $Submit/FelineFlash.hide()
+        $Submit/ThighTomb.hide()
+        $Submit/StayStill.hide()
+
+        emit_signal("close_skill_menu")
+
+# =============================================================================
+# Display Helpers
+# -----------------------------------------------------------------------------
+# Utility functions for showing text boxes and small popups.
+# =============================================================================
 func display_attack(text):
-	$SMbox.show()
-	$SMbox/AnimationPlayer.play("slidein")
-	$SMbox.text = text
-	await(get_tree().create_timer(2).timeout)
-	$SMbox/AnimationPlayer.play("slideout")
-	await(get_tree().create_timer(1).timeout)
-	$SMbox.hide()
-	
-func display_text(text, readrate = 0.05, ankha = false):
-	if ankha == true:
-		$AnkhaIcon.show()
-		ankhatext = 1
-	else: 
-		pass
-		
-	current_char = 0
-	statechange = 1
-	tween = create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
-	changestate(state.reading)
-	$Attack.hide()
-	$TB.show()
-	$TB.text = text
+    """Shows a temporary pop‑up describing the enemy attack."""
+    $SMbox.show()
+    $SMbox/AnimationPlayer.play("slidein")
+    $SMbox.text = text
+    await(get_tree().create_timer(2).timeout)
+    $SMbox/AnimationPlayer.play("slideout")
+    await(get_tree().create_timer(1).timeout)
+    $SMbox.hide()
 
-	
-	$TB.visible_characters = 0
-	
-	tween.tween_property($TB, "visible_characters", len(text), len(text) * readrate)
-	await(tween.finished)
-	if tween.finished:
-		changestate(state.finished)
-		statechange = 0
-	ankhatext = 0
+func display_text(text, readrate = 0.05, ankha = false):
+    """Displays scrolling text in the main textbox."""
+    if ankha == true:
+        $AnkhaIcon.show()
+        ankhatext = 1
+    else:
+        pass
+
+    current_char = 0
+    statechange = 1
+    tween = create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+    changestate(state.reading)
+    $Attack.hide()
+    $TB.show()
+    $TB.text = text
+
+    $TB.visible_characters = 0
+
+    tween.tween_property($TB, "visible_characters", len(text), len(text) * readrate)
+    await(tween.finished)
+    if tween.finished:
+        changestate(state.finished)
+        statechange = 0
+    ankhatext = 0
 	
  
 	
