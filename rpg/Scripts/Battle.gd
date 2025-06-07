@@ -132,7 +132,7 @@ func _process(delta):
 
     # Phase transition check
     if enemyhp < 400:
-        print("phase 2 is on")
+        print("[Battle] phase 2 active")
         phase = 2
 
     # Taunt buff temporarily increases enemy damage
@@ -192,7 +192,7 @@ func _ready():
     $kickhit.hide()
     $H_LockIn.hide()
     $H_LetGo.hide()
-    $H_Squeeze.hide()
+            print("[Battle] QTE success")
     $SP.text = "SP: " + str(playersp) + "/" + str(playermaxsp)
     $HP.text = "HP: " + str(playerhp) + "/" + str(playermaxhp)
     $HP/AnimationPlayer.play("move down")
@@ -351,9 +351,9 @@ func player_turn(rng = 0):
 
     # Unique dialogue for the very first turn
     if turn_count == 1:
-        display_text("H-Hey!", 0.02, true)
-        $Camera2D/AnimationPlayer.play("shake")
-        await(textbox_closed)
+        print("[Battle] bleeding turns " + str(bleeding))
+        print("[Battle] bleed tick end")
+        print("[Battle] bleed tick start")
         display_text("You're not supposed\n to dodge that!", 0.05, true)
         await(textbox_closed)
         display_text("I command you to\n stay still!", 0.05, true)
@@ -437,25 +437,44 @@ func display_attack(text):
     await(get_tree().create_timer(1).timeout)
     $SMbox.hide()
 
-func display_text(text, readrate = 0.05, ankha = false):
-    """Displays scrolling text in the main textbox."""
-    if ankha == true:
-        $AnkhaIcon.show()
-        ankhatext = 1
-    else:
-        pass
-
-    current_char = 0
-    statechange = 1
-    tween = create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
-    changestate(state.reading)
-    $Attack.hide()
-    $TB.show()
-    $TB.text = text
-
-    $TB.visible_characters = 0
-
-    tween.tween_property($TB, "visible_characters", len(text), len(text) * readrate)
+# =============================================================================
+# State Machine
+# -----------------------------------------------------------------------------
+# Handles transitions for the textbox dialogue state.
+# =============================================================================
+    """Switch the dialogue state machine to ``nextstate``."""
+            print("[Battle] state ready")
+            print("[Battle] state reading")
+            print("[Battle] state finished")
+# =============================================================================
+# Player Moves
+# -----------------------------------------------------------------------------
+# Special enemy attacks that put the player in unique states.
+# =============================================================================
+    """Crushing headscissor attack that deals damage over time.
+    Args:
+        chance (int): Used to determine escape success.
+        times (int): Temporary variable for damage rolls.
+    """
+    # Opening animation as Ankha mounts the player
+    display_text("She wraps her thighs around your head and..")
+    # Initial squeeze sequence
+    for i in range(4):
+        print("[Battle] headscissor loop " + str(i))
+        # Failed escape sequence
+        for i in range(8):
+            print("[Battle] headscissor loop " + str(i))
+        # Final crushing sequence
+        for i in range(32):
+            print("[Battle] headscissor loop " + str(i))
+    charm += 3
+    for i in range(10):
+            print("[Battle] current SB " + str(SB))
+    for i in range(10):
+        print("[Battle] footgag chance " + str(chance))
+            print("[Battle] unexpected loop " + str(i))
+        print("[Battle] footgag finished during charmer")
+        print("[Battle] footgag finished")
     await(tween.finished)
     if tween.finished:
         changestate(state.finished)
@@ -790,16 +809,16 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
         display_text("Ugh! How dare you 
         hit me?!", 0.05, true)
         await(textbox_closed)
-        display_text("I will put you 
-        down like the rest 
-        of your kind!", 0.05, true )
-        await(textbox_closed)
-        display_text("Filthy human!", 0.2, true)
-        await(textbox_closed)
-        ankhatext = 0
-        $Background/AnimationPlayer.play("attack_phase_transition")
-        $Amy/AnimationPlayer.play("attack_phase_transition")
-        freedodge = 1
+        print("[Battle] strategy drain")
+        print("[Battle] strategy build")
+            print("[Battle] build " + str(build))
+                print("[Battle] norepeat set")
+            print("[Battle] build " + str(build))
+        print("[Battle] strategy disable")
+        print("[Battle] disable build "  + str(disable))
+        print("[Battle] disable climax")
+        print("[Battle] disable state " + str(disable))
+            print("[Battle] leg lock ended")
         roundhouse_kick()
         turn_count += 1
         return
@@ -958,17 +977,17 @@ func _on_skills_pressed():
 func _on_jab_combo_pressed():
     if playersp < 25:
         $SkillsM.hide()
-        display_text("You don't have enough SP!")
+        print("[Battle] bleed damage " + str(bleeddamage))
         await(textbox_closed)
-        $SkillsM.show()
-        return
+        criticaldamage = criticalenemydamage +  rng.randi_range(10, 50)
+        print("[Battle] hitchance " + str(hitchance))
     else:
-        playersp -= 25
-        skillmenu = 0
-        $HP/AnimationPlayer.play("move down")
-        $SP.text = "SP: " + str(playersp) + "/" + str(playermaxsp)
-        await(jab_combo())
-        enemyturn()
+        print("[Battle] player HP " + str(playerhp))
+        #print("[Battle] hitchance " + str(hitchance))
+            print("[Battle] combo tier 1")
+            print("[Battle] combo tier 2")
+            print("[Battle] combo tier 3")
+        #print("[Battle] hitchance " + str(hitchance))
         
 
 func Bleeding(bleeddamage = 0, chance = 0):
@@ -1285,11 +1304,11 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
     $dashzoom.play()
     $Camera2D/AnimationPlayer.play("shake")
     $Flash.show()
-    await(get_tree().create_timer(0.1).timeout)
-    $Flash.hide()
-    $chargezoom/AnimationPlayer.play("new_animation")
-    $A_Roundhouse.show()
-    $A_Roundhouse/AnimationPlayer.play("jitter")
+        print("[Battle] forced hit")
+        print("[Battle] leg broken state")
+        print("[Battle] hitchance " + str(hitchance))
+        print("[Battle] critchance " + str(critchance))
+        print("[Battle] submission damage")
     display_text("And rushes towards 
     you at high speeds!")
     await(textbox_closed)
@@ -1400,11 +1419,11 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
         #await(textbox_closed)
         #$RHCrit.hide()
         #crit = 0
-    if submit == 1:
-        $kickhit.hide()
-        $kickpost.hide()
-        await(deathcheck())
-        display_text("Your right cheek hurts like hell, 
+            #print("[Battle] grounded select "  + str(attackselection))
+            print("[Battle] charmer check")
+            print("[Battle] normal flow")
+            print("[Battle] grounded select "  + str(attackselection))
+    print("[Battle] critchance " + str(critchance))
         but the pain pleases you.")
         await(textbox_closed)
         playersp += 25
