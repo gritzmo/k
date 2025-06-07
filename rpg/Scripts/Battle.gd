@@ -145,6 +145,7 @@ func _process(delta):
 
     quicktimeevent()  # listen for quick‑time input when active
 
+
     match currentstate:
         state.ready:
             if statechange == 1:
@@ -170,6 +171,7 @@ func _process(delta):
                 changestate(state.ready)
 
                 pass
+
 
 # =============================================================================
 # Initialization
@@ -419,6 +421,7 @@ func _input(_event):
 
         emit_signal("close_skill_menu")
 
+
 # =============================================================================
 # Display Helpers
 # -----------------------------------------------------------------------------
@@ -458,8 +461,7 @@ func display_text(text, readrate = 0.05, ankha = false):
         changestate(state.finished)
         statechange = 0
     ankhatext = 0
-    
- 
+
     
     
 func changestate(nextstate):
