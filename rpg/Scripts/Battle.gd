@@ -133,7 +133,7 @@ func _process(delta):
     # Phase transition check
     if enemyhp < 400:
         print("[Battle] phase 2 active")
-        phase = 2
+
 
     # Taunt buff temporarily increases enemy damage
     if taunt > 0:
@@ -170,6 +170,7 @@ func _process(delta):
                 changestate(state.ready)
 
                 pass
+
 
 # =============================================================================
 # Initialization
@@ -218,6 +219,7 @@ func quicktimeevent():
         if Input.is_action_just_pressed("qte"):
             quicktimesuccess = true
             print("[Battle] QTE success")
+
             pass
 
 # -----------------------------------------------------------------------------
@@ -382,6 +384,7 @@ func player_turn(rng = 0):
         print("[Battle] bleed tick end")
         await(Bleeding())
         print("[Battle] bleed tick start")
+
         $Background/AnimationPlayer.play("attack_phase")
         $Amy/AnimationPlayer.play("attack_phase")
         $TB.hide()
@@ -418,6 +421,7 @@ func _input(_event):
         $Submit/StayStill.hide()
 
         emit_signal("close_skill_menu")
+
 
 # =============================================================================
 # Display Helpers
@@ -482,6 +486,7 @@ func changestate(nextstate):
 # -----------------------------------------------------------------------------
 # Special enemy attacks that put the player in unique states.
 # =============================================================================
+
        
             
            
@@ -493,6 +498,7 @@ func headscissor(chance = 0, times = 0):
         chance (int): Used to determine escape success.
         times (int): Temporary variable for damage rolls.
     """
+
     #chance = 2 #rng.randi_range(0, 2)
     #if chance == 2 or stumble == 1:
         #print("headscissor in effect")
@@ -504,6 +510,7 @@ func headscissor(chance = 0, times = 0):
                 #display_text("And you fell down!")
                 #await(textbox_closed)
     # Opening animation as Ankha mounts the player
+
     $H_Sitdown.show()
     display_attack("Thigh Tomb")
     display_text("Ankha hops on top of you!")
@@ -528,6 +535,7 @@ func headscissor(chance = 0, times = 0):
         $H_Squeeze/AnimationPlayer.play("squeeze")
         #$R_Headscissor/AnimationPlayer.play("shake")
         print("[Battle] headscissor loop " + str(i))
+
         times = rng.randi_range(-13, -10)
         playerhp = playerhp - enemyattack - times
         display_text("You took " + str(enemyattack + times) + " damage", 0.02)
@@ -568,11 +576,13 @@ func headscissor(chance = 0, times = 0):
         await(get_tree().create_timer(0.4).timeout)
         # Failed escape sequence
         for i in range(8):
+
             $H_LockIn.hide()
             $H_Squeeze.show()
             $Camera2D/AnimationPlayer.play("shake")
             $H_Squeeze/AnimationPlayer.play("squeeze")
             print("[Battle] headscissor loop " + str(i))
+
             times = rng.randi_range(-10, -5)
             playerhp = playerhp - enemyattack - times
             display_text("You took " + str(enemyattack + times) + " damage", 0.02)
@@ -680,6 +690,7 @@ func footgag(times = 0, chance = 0, norepeat = 0):
     await(textbox_closed)
     chance = 1 #rng.randi_range(1, 2)
     for i in range(10):
+
         $Camera2D/AnimationPlayer.play("shake")
         times = rng.randi_range(-14, -9)
         if chance == 1:
@@ -694,6 +705,7 @@ func footgag(times = 0, chance = 0, norepeat = 0):
             SB = SB - enemyattack - times
             display_text("You lost " + str(enemyattack + times) + " SB!", 0.02)
             print("[Battle] current SB " + str(SB))
+
             $ScissorCrush.play()
             $SB_bar.value = SB
             if SB <= 0:
@@ -711,6 +723,7 @@ func footgag(times = 0, chance = 0, norepeat = 0):
         $H_Squeeze/AnimationPlayer.play("squeeze")
         times = rng.randi_range(-14, -9)
         print("[Battle] footgag chance " + str(chance))
+
         if norepeat == 1:
             chance = 2
         if norepeat == 2:
@@ -725,6 +738,7 @@ func footgag(times = 0, chance = 0, norepeat = 0):
             $ScissorCrush.play()
         else:
             print("[Battle] unexpected loop " + str(i))
+
             SB = SB - enemyattack - times
             display_text("You lost " + str(enemyattack + times) + " SB!", 0.02)
             $ScissorCrush.play()
@@ -763,6 +777,7 @@ func footgag(times = 0, chance = 0, norepeat = 0):
         print("[Battle] footgag finished during charmer")
     else:
         print("[Battle] footgag finished")
+
         player_turn()
 func kneel(chance = 0):
     display_text("Ankha leaps into the air...")
@@ -833,7 +848,8 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
     #
         
     if aistrats == 3:
-        print("[Battle] strategy drain")
+        print("[Battle] Drain Tactic is working...")
+
         #footgag()
         #kneel()
         #throatkick()
@@ -841,7 +857,7 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
         return
         
     if aistrats == 1:
-        print("[Battle] strategy build")
+    print("[Battle] Build Tactic is working...")
         build = 1.0
         aistrats = 1.1
         
@@ -880,11 +896,12 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
                 legkick()
                 norepeat = 1
                 print("[Battle] norepeat set")
-            
+
                 
         else:        
             build += 0.1
-            print("[Battle] build " + str(build))
+            print("[Battle] build 2 " + str(build))
+
             kick_up()
             #
     
@@ -892,6 +909,7 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
     #disable 
     if aistrats == 2:
         print("[Battle] strategy disable")
+
         #print("This value should be fucking 1 but instead it's " + str(aistrats))
         disable = 1
         aistrats = 2.2
@@ -899,6 +917,7 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
     if disable > 0.9 and disable < 1.2:
         disable += 0.1
         print("[Battle] disable build "  + str(disable))
+
         if kickaccuracy == 3:
             roundhouse_kick()
             disable = 0
@@ -915,6 +934,7 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
     
     elif disable >= 1.3:
         print("[Battle] disable climax")
+
         roundhouse_kick()
         disable = 0
         aistrats = 0
@@ -925,6 +945,7 @@ func enemyturn(attackselection = 1, chance = 0, norepeat = 0):
         await(legkick())
         if legstatus == 2:
             print("[Battle] leg lock ended")
+
             disable = 0
             aistrats = 0
         else:
@@ -1003,6 +1024,7 @@ func Bleeding(bleeddamage = 0, chance = 0):
         display_text("You lost " + str(bleeddamage) + "HP.")
         await(textbox_closed)
         print("[Battle] bleed damage " + str(bleeddamage))
+
         await(deathcheck())
     else:
         pass
@@ -1030,6 +1052,7 @@ func grounded_kick(chance = 0, criticaldamage = 0):
         $GetUp.show()
         $GetUp/AnimationPlayer.play("jumpkick")
         criticaldamage = criticalenemydamage +  rng.randi_range(10, 50)
+
         playerhp = playerhp - criticaldamage + playerdefense
         if playerhp <= 0:
             playerhp = 0
@@ -1057,6 +1080,7 @@ func flying_kick(hitchance = 0, bleedchance = 0):
     hitchance = rng.randi_range(1, 10)
     if hitchance <= playerspeed:
         print("[Battle] hitchance " + str(hitchance))
+
         display_text("You quickly duck and 
         barely avoided her kick!")
         await(textbox_closed)
@@ -1069,6 +1093,7 @@ func flying_kick(hitchance = 0, bleedchance = 0):
         $Flash.hide()
         player_took_damage()
         print("[Battle] player HP " + str(playerhp))
+
         $FlyingKick.show()
         $FlyingKick/AnimationPlayer.play("jumpkick")
         display_text("And kicks you in the throat!")
@@ -1097,6 +1122,7 @@ func jab_combo(punchcount = 0, hitchance = 0):
     
     #if hitchance <= enemyspeed:
         #print("[Battle] hitchance " + str(hitchance))
+
         #display_text("But all your punches missed?!")
         #await(textbox_closed)
         #return
@@ -1126,6 +1152,7 @@ func rush(timer = 0, textdisplay = 0):
         attackcount += 2
         if attackup > 0:
             print("[Battle] combo tier 1")
+
             attackcount += 3
             
     if attackcount > 8 and attackcount < 10:
@@ -1133,6 +1160,7 @@ func rush(timer = 0, textdisplay = 0):
         attackcount += 3
         if attackup > 0:
             print("[Battle] combo tier 2")
+
             attackcount += 5
         
     if attackcount > 10: 
@@ -1140,6 +1168,7 @@ func rush(timer = 0, textdisplay = 0):
         attackcount += 5
         if attackup > 0:
             print("[Battle] combo tier 3")
+
             attackcount += 10
         
         
@@ -1177,6 +1206,7 @@ func player_attack(critchance = 0, critdamage = 0, hitchance = 0):
     #hitchance = rng.randi_range(1, 10)
     #if hitchance <= enemyspeed:
         #print("[Battle] hitchance " + str(hitchance))
+
         #display_text("But you missed?!")
         #await(textbox_closed)
         #return
@@ -1330,6 +1360,7 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
     
     if submit == 2:
         print("[Battle] forced hit")
+
         hitchance = 999
         legstatus = 0
         submit = 1
@@ -1359,6 +1390,7 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
         $hitmiss.play()
         $A_Roundhouse.hide()
         print("[Battle] hitchance " + str(hitchance))
+
         display_text("She tried to kick you but missed!")
         await(textbox_closed)
         $kickmiss.hide()
@@ -1382,6 +1414,7 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
     #if critchance == 1 or crit == 1: 
     if submit == 1:
         print("[Battle] submission damage")
+
         playerhp = playerhp - enemyattack -  criticalenemydamage - revengemeter + playerdefense + 10
     
     else:
@@ -1445,6 +1478,7 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
         #if stumble == 1:
             #attackselection = 1 #rng.randi_range(1, 2)
             #print("[Battle] grounded select "  + str(attackselection))
+
             #if attackselection == 1:
                 #await(headscissor())
                 #player_turn()
@@ -1459,11 +1493,13 @@ func roundhouse_kick(critchance = 0, criticalenemydamage = 0, hitchance = 0, att
         else:
             player_turn()
             print("[Battle] normal flow")
+
     
 func grounded_attacks(attackselection = 0):
         if stumble == 1:
             attackselection = 1 #rng.randi_range(1, 2)
             print("[Battle] grounded select "  + str(attackselection))
+
         if attackselection == 1:
             await(headscissor())
             return
@@ -1493,7 +1529,7 @@ func player_took_damage():
     
 func player_took_critdamage(critchance = 0):
     critchance = rng.randi_range(0, 1)
-    print("[Battle] critchance " + str(critchance))
+    print("[Battle] critchance " + str(critchance)
     if critchance == 1: 
         playerhp = playerhp - enemyattack -  rng.randi_range(2, 4)
     else:
