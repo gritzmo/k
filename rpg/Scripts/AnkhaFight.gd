@@ -12,58 +12,59 @@ extends Node2D
 
 
 # ─── Player Stats ───
-class_name PlayerStats
+# Converted to inner class. Removed class_name to keep only one global
+# class per file as required by GDScript.
+class PlayerStats:
+    # The player's current and maximum health points
+    var max_hp : int = 100
+    var hp : int = max_hp
 
-# The player's current and maximum health points
-var max_hp : int = 100
-var hp : int = max_hp
+    # Spirit Points (used for special abilities)
+    var max_sp : int = 100
+    var sp : int = 0
 
-# Spirit Points (used for special abilities)
-var max_sp : int = 100
-var sp : int = 0
+    # Stamina controls how many actions we can do
+    var max_stamina : int = 100
+    var stamina : int = max_stamina
 
-# Stamina controls how many actions we can do
-var max_stamina : int = 100
-var stamina : int = max_stamina
+    # Used to decide turn order (higher means faster)
+    var speed : int = 10
 
-# Used to decide turn order (higher means faster)
-var speed : int = 10
+    # Chance to dodge enemy attacks (0..100)
+    var dodge_rate : int = 20
 
-# Chance to dodge enemy attacks (0..100)
-var dodge_rate : int = 20
+    # A flag used when the player is guarding
+    var guard_active : bool = false
 
-# A flag used when the player is guarding
-var guard_active : bool = false
+    # Tracks if the player is vulnerable next turn
+    var vulnerable_next_turn : bool = false
 
-# Tracks if the player is vulnerable next turn
-var vulnerable_next_turn : bool = false
+    # A dictionary of status effects currently on the player
+    var status_effects : Array = []
 
-# A dictionary of status effects currently on the player
-var status_effects : Array = []
-
-# Helper function to clamp SP between 0 and max
-func add_sp(amount : int) -> void:
-    sp = clamp(sp + amount, 0, max_sp)
+    # Helper function to clamp SP between 0 and max
+    func add_sp(amount : int) -> void:
+        sp = clamp(sp + amount, 0, max_sp)
 
 
 
 # ─── Enemy Stats ───
-class_name EnemyStats
+# Inner class for boss stats.
+class EnemyStats:
+    var max_hp : int = 300
+    var hp : int = max_hp
 
-var max_hp : int = 300
-var hp : int = max_hp
+    # The boss builds rage when taking damage
+    var rage : int = 0        # 0..100
 
-# The boss builds rage when taking damage
-var rage : int = 0        # 0..100
+    # Phase control for different move sets
+    var phase : int = 1
 
-# Phase control for different move sets
-var phase : int = 1
+    # Simple example speeds
+    var speed : int = 8
 
-# Simple example speeds
-var speed : int = 8
-
-# Status effects on the boss
-var status_effects : Array = []
+    # Status effects on the boss
+    var status_effects : Array = []
 
 
 
@@ -91,30 +92,30 @@ func tick_cooldowns(abilities : Dictionary) -> void:
             ability.current_cd -= 1
 
 # ─── Combo Manager ───
-class_name ComboManager
+# Inner helper class for handling simple QTE combos.
+class ComboManager:
+    var combo_count : int = 0
+    var qte_window : float = 0.0
+    var qte_active : bool = false
+    var success : bool = false
 
-var combo_count : int = 0
-var qte_window : float = 0.0
-var qte_active : bool = false
-var success : bool = false
+    # Called to start the quick-time-event after an attack
+    func start_qte(window_time : float) -> void:
+        qte_window = window_time
+        qte_active = true
+        success = false
+        combo_count += 1
 
-# Called to start the quick-time-event after an attack
-func start_qte(window_time : float) -> void:
-    qte_window = window_time
-    qte_active = true
-    success = false
-    combo_count += 1
-
-# In your BattleScene's _process(delta) you would call this
-# to handle timing and input detection
-func update_qte(delta : float) -> void:
-    if qte_active:
-        qte_window -= delta
-        if qte_window <= 0:
-            qte_active = false
-        elif Input.is_action_just_pressed("qte"):
-            success = true
-            qte_active = false
+    # In your BattleScene's _process(delta) you would call this
+    # to handle timing and input detection
+    func update_qte(delta : float) -> void:
+        if qte_active:
+            qte_window -= delta
+            if qte_window <= 0:
+                qte_active = false
+            elif Input.is_action_just_pressed("qte"):
+                success = true
+                qte_active = false
 
 # ─── Main Battle Class ───
 
